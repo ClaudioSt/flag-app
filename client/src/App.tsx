@@ -1,112 +1,22 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import TeamsPage from './TeamsPage';
+import PlaybookPage from './PlaybookPage';
+import PlayPage from './PlayPage';
+import HomePage from './HomePage';
 
 function App() {
-
-  const [array, setArray] = useState([]);
-  const [players, setPlayers] = useState<{ name: string; position: string }[]>([]);
-  const [name, setName] = useState("");
-  const [position, setPosition] = useState("");
-
-  const fetchAPI = async () => {
-    const response = await axios.get("http://localhost:8080/api");
-    setArray(response.data.offense);
-    console.log(response.data.offense)
-  };
-
-  // API-Daten für alle Spieler abrufen
-  const fetchPlayers = async () => {
-    try {
-      const response = await axios.get("http://localhost:8080/api/players");
-      setPlayers(response.data); // Spieler in den Zustand setzen
-    } catch (error) {
-      console.error("Fehler beim Abrufen der Spieler:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchAPI();
-    fetchPlayers();
-  }, [])
-
-  // Funktion, um einen neuen Spieler hinzuzufügen
-  const addPlayer = async (e: React.FormEvent) => {
-    e.preventDefault(); // Verhindern, dass das Formular die Seite neu lädt.
-
-    try {
-      const newPlayer = { name, position };
-      const response = await axios.post("http://localhost:8080/api/players", newPlayer);
-      console.log("Spieler hinzugefügt:", response.data);
-
-      // Formular zurücksetzen
-      setName("");
-      setPosition("");
-    } catch (error) {
-      console.error("Fehler beim Hinzufügen des Spielers:", error);
-    }
-  };
-
   return (
-    <>
+    <Router>
       <div>
-        <h1 className="text-3xl font-bold underline text-red-500">
-          Spieler hinzufügen
-        </h1>
-
-        {/* Formular */}
-        <form onSubmit={addPlayer}>
-          <div>
-            <label>Spielername:</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Name des Spielers"
-              required
-            />
-          </div>
-
-          <div>
-            <label>Position:</label>
-            <input
-              type="text"
-              value={position}
-              onChange={(e) => setPosition(e.target.value)}
-              placeholder="Position des Spielers"
-              required
-            />
-          </div>
-
-          <button type="submit">Spieler hinzufügen</button>
-        </form>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/app/teams" element={<TeamsPage />} />
+          <Route path="/app/playbook/:id" element={<PlaybookPage />} />
+          <Route path="/app/playbook/:id/plays/:playId" element={<PlayPage />} />
+        </Routes>
       </div>
-      <h1 className="text-3xl font-bold underline text-red-500">
-        Hello world!
-      </h1>
-      {array.map((offense, index) => (
-        <div key={index}>
-          <p>{offense}
-          </p>
-          <br>
-          </br>
-
-        </div>
-
-      ))}
-      <h2 className="text-xl mt-5">Alle Spieler:</h2>
-      {players.length > 0 ? (
-        players.map((player, index) => (
-          <div key={index} className="player-item">
-            <p><strong>Name:</strong> {player.name}</p>
-            <p><strong>Position:</strong> {player.position}</p>
-            <hr />
-          </div>
-        ))
-      ) : (
-        <p>Keine Spieler vorhanden</p>
-      )}
-    </>
-  )
+    </Router>
+  );
 }
 
-export default App
+export default App;
