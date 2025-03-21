@@ -27,7 +27,6 @@ const teamSchema = new mongoose.Schema({
     color: { type: String, required: false },
     logo: { type: String, required: false }
 });
-
 const Team = mongoose.model('Team', teamSchema);
 
 // Playbook Schema & Model
@@ -36,7 +35,7 @@ const playbookSchema = new mongoose.Schema({
     playersPerSide: {
         type: Number, required: true, validate: {
             validator: function (value) {
-                return value >= 4 && value <= 9; // Nur Werte zwischen 4 und 9 sind erlaubt
+                return value >= 4 && value <= 9;
             },
             message: 'playersPerSide muss zwischen 4 und 9 liegen'
         }
@@ -46,7 +45,6 @@ const playbookSchema = new mongoose.Schema({
     defenseTemplate: { type: String },
     teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', required: true }
 });
-
 const Playbook = mongoose.model('Playbook', playbookSchema);
 
 // Play Schema & Model
@@ -58,31 +56,20 @@ const playSchema = new mongoose.Schema({
     endOption: { type: String, enum: ["continue", "stop"] },
     playbookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Playbook', required: true }
 });
-
 const Play = mongoose.model('Play', playSchema);
 
 // --- Routes ---
 
-// 1️⃣ Teams: CRUD Operationen
-
-// CREATE - Neuen Team hinzufügen
+// Teams CRUD
 app.post("/api/teams", async (req, res) => {
-    const newTeam = new Team({
-        name: req.body.name,
-        abbreviation: req.body.abbreviation,
-        color: req.body.color,
-        logo: req.body.logo
-    });
-
     try {
+        const newTeam = new Team(req.body);
         const savedTeam = await newTeam.save();
         res.status(201).json(savedTeam);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
-
-// READ - Alle Teams abrufen
 app.get("/api/teams", async (req, res) => {
     try {
         const teams = await Team.find();
@@ -91,13 +78,11 @@ app.get("/api/teams", async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 });
-
-// UPDATE - Team aktualisieren
 app.put("/api/teams/:id", async (req, res) => {
     try {
         const updatedTeam = await Team.findByIdAndUpdate(
             req.params.id,
-            { name: req.body.name, abbreviation: req.body.abbreviation, color: req.body.color, logo: req.body.logo },
+            req.body,
             { new: true }
         );
         res.json(updatedTeam);
@@ -105,8 +90,6 @@ app.put("/api/teams/:id", async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
-
-// DELETE - Team löschen
 app.delete("/api/teams/:id", async (req, res) => {
     try {
         await Team.findByIdAndDelete(req.params.id);
@@ -116,28 +99,16 @@ app.delete("/api/teams/:id", async (req, res) => {
     }
 });
 
-// 2️⃣ Playbooks: CRUD Operationen für jedes Team
-
-// CREATE - Neues Playbook für ein Team hinzufügen
+// Playbooks CRUD
 app.post("/api/teams/:teamId/playbooks", async (req, res) => {
-    const newPlaybook = new Playbook({
-        name: req.body.name,
-        playersPerSide: req.body.playersPerSide,
-        fieldLinesOption: req.body.fieldLinesOption,
-        offenseTemplate: req.body.offenseTemplate,
-        defenseTemplate: req.body.defenseTemplate,
-        teamId: req.params.teamId
-    });
-
     try {
+        const newPlaybook = new Playbook({ ...req.body, teamId: req.params.teamId });
         const savedPlaybook = await newPlaybook.save();
         res.status(201).json(savedPlaybook);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
-
-// READ - Alle Playbooks für ein Team abrufen
 app.get("/api/teams/:teamId/playbooks", async (req, res) => {
     try {
         const playbooks = await Playbook.find({ teamId: req.params.teamId });
@@ -147,28 +118,50 @@ app.get("/api/teams/:teamId/playbooks", async (req, res) => {
     }
 });
 
-// 3️⃣ Plays: CRUD Operationen für jedes Playbook
-
-// CREATE - Neues Play für ein Playbook hinzufügen
-app.post("/api/playbooks/:playbookId/plays", async (req, res) => {
-    const newPlay = new Play({
-        offense: req.body.offense,
-        player: req.body.player,
-        startPoint: req.body.startPoint,
-        route: req.body.route,
-        endOption: req.body.endOption,
-        playbookId: req.params.playbookId
-    });
-
+// NEU: Einzelnes Playbook abrufen
+app.get("/api/playbooks/:id", async (req, res) => {
     try {
+        const playbook = await Playbook.findById(req.params.id);
+        res.json(playbook);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// NEU: Playbook aktualisieren
+app.put("/api/playbooks/:id", async (req, res) => {
+    try {
+        const updatedPlaybook = await Playbook.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        );
+        res.json(updatedPlaybook);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// NEU: Playbook löschen
+app.delete("/api/playbooks/:id", async (req, res) => {
+    try {
+        await Playbook.findByIdAndDelete(req.params.id);
+        res.json({ message: "Playbook gelöscht!" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Plays CRUD
+app.post("/api/playbooks/:playbookId/plays", async (req, res) => {
+    try {
+        const newPlay = new Play({ ...req.body, playbookId: req.params.playbookId });
         const savedPlay = await newPlay.save();
         res.status(201).json(savedPlay);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
-
-// READ - Alle Plays für ein Playbook abrufen
 app.get("/api/playbooks/:playbookId/plays", async (req, res) => {
     try {
         const plays = await Play.find({ playbookId: req.params.playbookId });
